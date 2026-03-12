@@ -28,16 +28,17 @@ TRANSLATIONS = {
     "en": {
         "app_title": "Books Database Explorer",
         "db_caption": "Database: {path}",
-        "app_subtitle": "Explore a curated collection from Goodreads — the world's largest community of book lovers, where over 150 million readers share reviews, ratings, and recommendations.",
+        "app_subtitle": "Explore a curated collection from Goodreads — the world's largest reading community, where over 150 million readers share reviews, ratings, and recommendations.",
         "language_label": "Language / 语言",
         "lang_english": "English",
         "lang_chinese": "中文",
         "page": "Navigation",
-        "page_search": "🔍  Search",
+        "page_search": "🔍  Filtered Search",
         "page_explore": "🧭  Explore",
         "page_analytics": "📊  Analytics",
         "no_data": "No data found for current filters.",
         "title_keyword": "Title keyword",
+        "title_keyword_placeholder": "e.g. Harry Potter",
         "publish_year": "Publish year",
         "rating": "Rating",
         "result_limit": "Result limit",
@@ -55,16 +56,18 @@ TRANSLATIONS = {
         "metric_books": "Books",
         "metric_authors": "Authors",
         "metric_publishers": "Publishers",
-        "metric_avg_rating": "Avg Rating",
-        "top_publishers": "Top Publishers by Book Count",
+        "metric_avg_rating": "Weighted Avg Rating",
+        "metric_median_rating": "Median Rating",
+        "top_publishers": "🏢 Top Publishers by Book Count",
         "top_authors": "Top Authors by Average Rating (≥ 5 books)",
-        "books_by_year": "Books by Publish Year",
-        "rating_distribution": "Rating Distribution",
+        "books_by_year": "📈 Books by Publish Year",
+        "rating_distribution": "⭐ Rating Distribution (book count)",
+        "rating_volume_distribution": "🔥 Rating Distribution (rating volume)",
         "db_not_found": "Database file not found. Run load script first.",
         "nav_hint": "Pick a page, then use filters to drill down.",
-        "search_hint": "Combine text, year and rating filters.",
+        "search_hint": "Combine title, year, rating, and language filters.",
         "explore_hint": "Drill into a specific author or publisher to discover books.",
-        "analytics_hint": "Visual snapshots of distribution, coverage, and trends.",
+        "analytics_hint": "Use visual summaries to understand distribution, coverage, and trends.",
         "filter_panel": "⚙️  Filters",
         "results_panel": "📋  Results",
         "rows_returned": "{count} rows returned",
@@ -74,12 +77,15 @@ TRANSLATIONS = {
         "hero_badge_charts": "Interactive charts",
         "theme_light": "☀️ Light",
         "theme_dark": "🌙 Dark",
-        "language_dist": "Language Distribution (top 10)",
-        "pages_vs_rating": "Pages vs Rating (sampled)",
+        "language_dist": "🌐 Language Distribution (Top 10)",
+        "pages_vs_rating": "📚 Pages vs Rating (sampled)",
+        "top_authors_scatter": "🎯 Author Productivity vs Rating",
+        "rating_weight_delta": "vs unweighted {value}",
+        "books_yoy_change": "Year-over-year Change",
         "book_detail": "📖  Book Detail",
-        "select_book_hint": "Click a row in the table to see details from Google Books",
+        "select_book_hint": "Select a row to view richer details from Google Books",
         "select_book": "Select a book to view details",
-        "book_by": "by {authors}",
+        "book_by": "Author: {authors}",
         "book_publisher": "Publisher",
         "book_pages": "Pages",
         "book_published": "Published",
@@ -94,9 +100,13 @@ TRANSLATIONS = {
         "rating_goodreads": "Goodreads",
         "rating_google": "Google Books",
         "rating_people": "{count} ratings",
-        "review_sites": "Quick Search",
+        "review_sites": "Quick Links",
         "filter_language": "Language",
         "all_languages": "All",
+        "unknown_author": "Unknown",
+        "pages_unit_short": "p.",
+        "nav_brand": "📚 Books Explorer",
+        "footer_built_with": "Built with Streamlit · SQLite · Python",
     },
     "zh": {
         "app_title": "图书数据库浏览器",
@@ -111,6 +121,7 @@ TRANSLATIONS = {
         "page_analytics": "📊  统计分析",
         "no_data": "当前筛选条件下没有数据。",
         "title_keyword": "书名关键词",
+        "title_keyword_placeholder": "例如：哈利·波特",
         "publish_year": "出版年份",
         "rating": "评分",
         "result_limit": "结果上限",
@@ -128,11 +139,13 @@ TRANSLATIONS = {
         "metric_books": "图书数",
         "metric_authors": "作者数",
         "metric_publishers": "出版社数",
-        "metric_avg_rating": "平均评分",
-        "top_publishers": "热门出版社（按图书数量）",
+        "metric_avg_rating": "加权平均评分",
+        "metric_median_rating": "评分中位数",
+        "top_publishers": "🏢 热门出版社（按图书数量）",
         "top_authors": "高分作者（≥ 5 本书）",
-        "books_by_year": "各年份图书数量",
-        "rating_distribution": "评分分布",
+        "books_by_year": "📈 各年份图书数量",
+        "rating_distribution": "⭐ 评分分布（按书本数）",
+        "rating_volume_distribution": "🔥 评分分布（按评分人数）",
         "db_not_found": "未找到数据库文件，请先运行导入脚本。",
         "nav_hint": "选择页面，再用筛选条件细化。",
         "search_hint": "可组合书名、年份、评分条件检索。",
@@ -147,8 +160,11 @@ TRANSLATIONS = {
         "hero_badge_charts": "交互图表",
         "theme_light": "☀️ 浅色",
         "theme_dark": "🌙 深色",
-        "language_dist": "语言分布（前 10）",
-        "pages_vs_rating": "页数 vs 评分（采样）",
+        "language_dist": "🌐 语言分布（前 10）",
+        "pages_vs_rating": "📚 页数 vs 评分（采样）",
+        "top_authors_scatter": "🎯 作者产量与评分分布",
+        "rating_weight_delta": "对比未加权 {value}",
+        "books_yoy_change": "同比变化",
         "book_detail": "📖  图书详情",
         "select_book_hint": "点击表格中的行，即可查看来自 Google Books 的详细信息",
         "select_book": "选择一本书查看详情",
@@ -170,6 +186,10 @@ TRANSLATIONS = {
         "review_sites": "快捷搜索",
         "filter_language": "语言",
         "all_languages": "全部",
+        "unknown_author": "未知作者",
+        "pages_unit_short": "页",
+        "nav_brand": "📚 图书浏览器",
+        "footer_built_with": "基于 Streamlit · SQLite · Python 构建",
     },
 }
 
@@ -182,6 +202,9 @@ COLUMN_LABELS = {
         "publisher_name": "Publisher", "author_name": "Author",
         "avg_rating": "Avg Rating", "authors": "Authors",
         "text_reviews_count": "Reviews",
+        "ratings_volume": "Rating Volume",
+        "yearly_change_pct": "YoY %",
+        "books_count_rolling": "5Y Avg",
     },
     "zh": {
         "title": "书名", "publish_year": "出版年份", "rating": "评分",
@@ -191,6 +214,9 @@ COLUMN_LABELS = {
         "publisher_name": "出版社", "author_name": "作者",
         "avg_rating": "平均评分", "authors": "作者",
         "text_reviews_count": "评论数",
+        "ratings_volume": "评分人数",
+        "yearly_change_pct": "同比%",
+        "books_count_rolling": "5年均值",
     },
 }
 
@@ -982,7 +1008,7 @@ def render_book_card(info: dict, t, db_book: dict | None = None) -> None:
     from urllib.parse import quote_plus as _qp
 
     title_esc = _html.escape(info["title"])
-    authors_str = ", ".join(info["authors"]) if info["authors"] else "Unknown"
+    authors_str = ", ".join(info["authors"]) if info["authors"] else t("unknown_author")
     authors_esc = _html.escape(authors_str)
 
     # Cover
@@ -998,7 +1024,7 @@ def render_book_card(info: dict, t, db_book: dict | None = None) -> None:
     if info.get("published_date"):
         chips.append(f'📅 {_html.escape(info["published_date"])}')
     if info.get("page_count"):
-        chips.append(f'📄 {info["page_count"]} p.')
+        chips.append(f'📄 {info["page_count"]} {t("pages_unit_short")}')
     if info.get("isbn_13"):
         chips.append(f'🔢 {info["isbn_13"]}')
     elif info.get("isbn_10"):
@@ -1112,7 +1138,11 @@ def page_search(conn: sqlite3.Connection, t, lang: str) -> None:
 
     col_a, col_b = st.columns(2)
     with col_a:
-        keyword = st.text_input(t("title_keyword"), "", placeholder="e.g. Harry Potter")
+        keyword = st.text_input(
+            t("title_keyword"),
+            "",
+            placeholder=t("title_keyword_placeholder"),
+        )
         year_range = st.slider(
             t("publish_year"),
             min_value=int(year_min),
@@ -1230,21 +1260,54 @@ def page_analytics(conn: sqlite3.Connection, t, lang: str) -> None:
     st.header(t("page_analytics"))
     page_subtitle(t("analytics_hint"))
 
-    # --- KPI metrics row ---
+    # --- KPI metrics row (accuracy-oriented) ---
     total_books = run_scalar(conn, "SELECT COUNT(*) FROM books")
     total_authors = run_scalar(conn, "SELECT COUNT(*) FROM authors")
-    total_publishers = run_scalar(conn, "SELECT COUNT(DISTINCT publisher_name) FROM books WHERE publisher_name IS NOT NULL")
-    avg_rating = run_scalar(conn, "SELECT ROUND(AVG(rating), 2) FROM books WHERE rating IS NOT NULL")
+    total_publishers = run_scalar(
+        conn,
+        "SELECT COUNT(DISTINCT publisher_name) FROM books WHERE publisher_name IS NOT NULL",
+    )
+    avg_rating = run_scalar(conn, "SELECT AVG(rating) FROM books WHERE rating IS NOT NULL")
+    weighted_avg_rating = run_scalar(
+        conn,
+        """
+        SELECT
+            CASE
+                WHEN SUM(COALESCE(num_ratings, 0)) = 0 THEN NULL
+                ELSE SUM(rating * num_ratings) * 1.0 / SUM(num_ratings)
+            END
+        FROM books
+        WHERE rating IS NOT NULL AND num_ratings IS NOT NULL AND num_ratings > 0
+        """,
+    )
+    rating_values = run_query(conn, "SELECT rating FROM books WHERE rating IS NOT NULL")
+    median_rating = (
+        float(pd.Series([r["rating"] for r in rating_values]).median())
+        if rating_values
+        else None
+    )
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric(t("metric_books"), f"{total_books:,}")
     c2.metric(t("metric_authors"), f"{total_authors:,}")
     c3.metric(t("metric_publishers"), f"{total_publishers:,}")
-    c4.metric(t("metric_avg_rating"), f"⭐ {avg_rating}")
+    c4.metric(
+        t("metric_avg_rating"),
+        f"⭐ {weighted_avg_rating:.2f}" if weighted_avg_rating is not None else "—",
+        delta=(
+            t("rating_weight_delta", value=f"{avg_rating:.2f}")
+            if avg_rating is not None and weighted_avg_rating is not None
+            else None
+        ),
+    )
+    c5.metric(
+        t("metric_median_rating"),
+        f"⭐ {median_rating:.2f}" if median_rating is not None else "—",
+    )
 
-    st.markdown("")  # spacer
+    st.markdown("")
 
-    # --- Top publishers bar chart ---
+    # --- Top publishers ---
     section_title(t("top_publishers"))
     top_pubs = run_query(
         conn,
@@ -1260,48 +1323,76 @@ def page_analytics(conn: sqlite3.Connection, t, lang: str) -> None:
     if top_pubs:
         df_pubs = pd.DataFrame(top_pubs)
         df_pubs = _rename_df(df_pubs, lang)
-        st.bar_chart(df_pubs, x=_col("publisher_name", lang), y=_col("book_count", lang), horizontal=True, height=480)
+        st.bar_chart(
+            df_pubs,
+            x=_col("publisher_name", lang),
+            y=_col("book_count", lang),
+            horizontal=True,
+            height=420,
+        )
 
-    # --- Two column charts ---
-    col_left, col_right = st.columns(2)
-
-    # Rating distribution
-    with col_left:
+    # --- Rating distribution: count vs rating volume ---
+    rating_bucket_rows = run_query(
+        conn,
+        """
+        SELECT
+            ROUND(rating * 2) / 2.0 AS rating_bucket,
+            COUNT(*) AS count,
+            SUM(COALESCE(num_ratings, 0)) AS ratings_volume
+        FROM books
+        WHERE rating IS NOT NULL
+        GROUP BY rating_bucket
+        ORDER BY rating_bucket
+        """,
+    )
+    left, right = st.columns(2)
+    with left:
         section_title(t("rating_distribution"))
-        rating_dist = run_query(
-            conn,
-            """
-            SELECT ROUND(rating, 1) AS rating_bucket, COUNT(*) AS count
-            FROM books
-            WHERE rating IS NOT NULL
-            GROUP BY rating_bucket
-            ORDER BY rating_bucket
-            """,
-        )
-        if rating_dist:
-            df_rating = pd.DataFrame(rating_dist)
+        if rating_bucket_rows:
+            df_rating = pd.DataFrame(rating_bucket_rows)
             df_rating = _rename_df(df_rating, lang)
-            st.bar_chart(df_rating, x=_col("rating_bucket", lang), y=_col("count", lang), height=340)
+            st.bar_chart(
+                df_rating,
+                x=_col("rating_bucket", lang),
+                y=_col("count", lang),
+                height=320,
+            )
+    with right:
+        section_title(t("rating_volume_distribution"))
+        if rating_bucket_rows:
+            df_rating_volume = pd.DataFrame(rating_bucket_rows)
+            df_rating_volume = _rename_df(df_rating_volume, lang)
+            st.line_chart(
+                df_rating_volume,
+                x=_col("rating_bucket", lang),
+                y=_col("ratings_volume", lang),
+                height=320,
+            )
 
-    # Language distribution
-    with col_right:
-        section_title(t("language_dist"))
-        lang_dist = run_query(
-            conn,
-            """
-            SELECT COALESCE(language, 'Unknown') AS language, COUNT(*) AS count
-            FROM books
-            GROUP BY language
-            ORDER BY count DESC
-            LIMIT 10
-            """,
+    # --- Language distribution ---
+    section_title(t("language_dist"))
+    lang_dist = run_query(
+        conn,
+        """
+        SELECT COALESCE(language, 'Unknown') AS language, COUNT(*) AS count
+        FROM books
+        GROUP BY language
+        ORDER BY count DESC
+        LIMIT 12
+        """,
+    )
+    if lang_dist:
+        df_lang = pd.DataFrame(lang_dist)
+        df_lang = _rename_df(df_lang, lang)
+        st.bar_chart(
+            df_lang,
+            x=_col("language", lang),
+            y=_col("count", lang),
+            horizontal=True,
+            height=360,
         )
-        if lang_dist:
-            df_lang = pd.DataFrame(lang_dist)
-            df_lang = _rename_df(df_lang, lang)
-            st.bar_chart(df_lang, x=_col("language", lang), y=_col("count", lang), horizontal=True, height=340)
 
-    # --- Books by year area chart ---
+    # --- Books by year trend + YoY change ---
     section_title(t("books_by_year"))
     books_by_year = run_query(
         conn,
@@ -1315,10 +1406,95 @@ def page_analytics(conn: sqlite3.Connection, t, lang: str) -> None:
     )
     if books_by_year:
         df_year = pd.DataFrame(books_by_year)
-        df_year = _rename_df(df_year, lang)
-        st.area_chart(df_year, x=_col("publish_year", lang), y=_col("books_count", lang), height=360)
+        df_year["rolling_avg_5y"] = (
+            df_year["books_count"].rolling(window=5, min_periods=1).mean().round(2)
+        )
+        df_year["yearly_change_pct"] = (
+            df_year["books_count"].pct_change().fillna(0).mul(100).round(2)
+        )
 
-    # --- Top authors table ---
+        year_left, year_right = st.columns([2, 1])
+        with year_left:
+            df_year_chart = _rename_df(
+                df_year[["publish_year", "books_count", "rolling_avg_5y"]]
+                .rename(columns={"rolling_avg_5y": "books_count_rolling"}),
+                lang,
+            )
+            st.line_chart(
+                df_year_chart,
+                x=_col("publish_year", lang),
+                y=[_col("books_count", lang), _col("books_count_rolling", lang)],
+                height=340,
+            )
+        with year_right:
+            st.caption(t("books_yoy_change"))
+            yoy = _rename_df(
+                df_year[["publish_year", "yearly_change_pct"]].tail(20),
+                lang,
+            )
+            st.bar_chart(
+                yoy,
+                x=_col("publish_year", lang),
+                y=_col("yearly_change_pct", lang),
+                height=340,
+            )
+
+    # --- Pages vs rating scatter ---
+    section_title(t("pages_vs_rating"))
+    pages_vs_rating = run_query(
+        conn,
+        """
+        SELECT pages, rating, num_ratings
+        FROM books
+        WHERE pages IS NOT NULL
+          AND rating IS NOT NULL
+          AND pages BETWEEN 40 AND 1800
+          AND num_ratings IS NOT NULL
+        ORDER BY num_ratings DESC
+        LIMIT 1800
+        """,
+    )
+    if pages_vs_rating:
+        df_pages = pd.DataFrame(pages_vs_rating)
+        corr = df_pages["pages"].corr(df_pages["rating"])
+        st.caption(f"Pearson r = {corr:.3f}" if pd.notna(corr) else "Pearson r = —")
+        df_pages = _rename_df(df_pages, lang)
+        st.scatter_chart(
+            df_pages,
+            x=_col("pages", lang),
+            y=_col("rating", lang),
+            height=360,
+        )
+
+    # --- Top authors: scatter + table ---
+    section_title(t("top_authors_scatter"))
+    author_scatter = run_query(
+        conn,
+        """
+        SELECT
+            a.author_name,
+            COUNT(*) AS books_count,
+            ROUND(AVG(b.rating), 2) AS avg_rating
+        FROM book_authors ba
+        JOIN authors a ON ba.author_id = a.author_id
+        JOIN books b ON ba.book_id = b.book_id
+        WHERE b.rating IS NOT NULL
+        GROUP BY a.author_id, a.author_name
+        HAVING COUNT(*) >= 3
+        ORDER BY books_count DESC
+        LIMIT 250
+        """,
+    )
+    if author_scatter:
+        df_author_scatter = pd.DataFrame(author_scatter)
+        df_author_scatter = _rename_df(df_author_scatter, lang)
+        st.scatter_chart(
+            df_author_scatter,
+            x=_col("books_count", lang),
+            y=_col("avg_rating", lang),
+            height=340,
+        )
+
     section_title(t("top_authors"))
     top_authors = run_query(
         conn,
@@ -1337,7 +1513,7 @@ def page_analytics(conn: sqlite3.Connection, t, lang: str) -> None:
         LIMIT 20
         """,
     )
-    show_table(top_authors, t, lang=lang, height=520)
+    show_table(top_authors, t, lang=lang, height=420)
 
 
 # ---------------------------------------------------------------------------
@@ -1355,16 +1531,16 @@ def main() -> None:
     # --- Top navigation bar ---
     nav_left, nav_right = st.columns([8, 1])
     with nav_left:
+        t_temp = get_text_fn(st.session_state.lang)
         pages = [("search", "page_search"), ("analytics", "page_analytics")]
         cols = st.columns(len(pages) + 1)
         with cols[0]:
             st.markdown(
-                '<div class="nav-brand">📚 Books Explorer</div>',
+                f'<div class="nav-brand">{t_temp("nav_brand")}</div>',
                 unsafe_allow_html=True,
             )
         for idx, (key, label_key) in enumerate(pages, 1):
             with cols[idx]:
-                t_temp = get_text_fn(st.session_state.lang)
                 is_active = st.session_state.page == key
                 if st.button(
                     t_temp(label_key),
@@ -1410,7 +1586,7 @@ def main() -> None:
 
     # --- Footer ---
     st.markdown(
-        '<div class="app-footer">Built with Streamlit · SQLite · Python</div>',
+        f'<div class="app-footer">{t("footer_built_with")}</div>',
         unsafe_allow_html=True,
     )
 
