@@ -29,6 +29,16 @@ CREATE TABLE IF NOT EXISTS book_authors (
     FOREIGN KEY (author_id) REFERENCES authors(author_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS reading_list (
+    book_id INTEGER PRIMARY KEY,
+    status TEXT NOT NULL CHECK (status IN ('want_to_read', 'reading', 'completed', 'dropped')),
+    personal_rating REAL CHECK (personal_rating IS NULL OR personal_rating BETWEEN 0 AND 5),
+    finished_date TEXT,
+    notes TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (book_id) REFERENCES books(book_id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_books_title ON books(title);
 CREATE INDEX IF NOT EXISTS idx_books_publish_year ON books(publish_year);
 CREATE INDEX IF NOT EXISTS idx_books_rating ON books(rating);
@@ -36,3 +46,5 @@ CREATE INDEX IF NOT EXISTS idx_books_language ON books(language);
 CREATE INDEX IF NOT EXISTS idx_books_isbn ON books(isbn);
 CREATE INDEX IF NOT EXISTS idx_books_publisher ON books(publisher_name);
 CREATE INDEX IF NOT EXISTS idx_book_authors_author_id ON book_authors(author_id);
+CREATE INDEX IF NOT EXISTS idx_reading_list_status ON reading_list(status);
+CREATE INDEX IF NOT EXISTS idx_reading_list_updated_at ON reading_list(updated_at);

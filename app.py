@@ -2,7 +2,9 @@
 """Books Database Explorer — Streamlit frontend (v2 redesign)."""
 
 import os
+import re
 import sqlite3
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Iterable, List
 from urllib.parse import quote_plus
@@ -36,9 +38,26 @@ TRANSLATIONS = {
         "page_search": "🔍  Filtered Search",
         "page_explore": "🧭  Explore",
         "page_analytics": "📊  Analytics",
+        "page_reading_list": "📚  Reading List",
         "no_data": "No data found for current filters.",
         "title_keyword": "Title keyword",
         "title_keyword_placeholder": "e.g. Harry Potter",
+        "google_fallback_title": "🌐  Can't find your book? Search Open Library directly",
+        "google_fallback_hint": "If the local database doesn't include your book, enter a title and search in Open Library.",
+        "google_fallback_input": "Book title",
+        "google_fallback_placeholder": "e.g. The Name of the Wind",
+        "google_fallback_author_input": "Author (optional)",
+        "google_fallback_author_placeholder": "e.g. Patrick Rothfuss",
+        "google_fallback_button": "Search Open Library",
+        "google_fallback_empty": "Please enter a book title.",
+        "google_fallback_loading": "Searching Open Library …",
+        "google_fallback_no_result": "No matching book found on Open Library.",
+        "openlib_import_button": "Quick Import To Local DB",
+        "openlib_imported": "Imported to local database (ID {book_id}).",
+        "openlib_import_exists": "This book already exists in local database (ID {book_id}).",
+        "openlib_import_failed": "Import failed: {reason}",
+        "close_detail_panel": "← Close details",
+        "detail_panel_closed": "Details panel closed for this row. Select another row to open.",
         "publish_year": "Publish year",
         "rating": "Rating",
         "result_limit": "Result limit",
@@ -68,8 +87,71 @@ TRANSLATIONS = {
         "search_hint": "Combine title, year, rating, and language filters.",
         "explore_hint": "Drill into a specific author or publisher to discover books.",
         "analytics_hint": "Use visual summaries to understand distribution, coverage, and trends.",
+        "reading_list_hint": "Track your reading status, export reading progress, and maintain the book catalog.",
         "filter_panel": "⚙️  Filters",
         "results_panel": "📋  Results",
+        "tab_my_reading": "📖 My Reading",
+        "tab_manage_books": "🛠️ Manage Books",
+        "reading_add_section": "➕ Add Or Update Reading Entry",
+        "reading_export_section": "📤 Export Reading Data",
+        "reading_table_section": "📋 Reading Entries",
+        "reading_status": "Reading Status",
+        "status_want_to_read": "Want to Read",
+        "status_reading": "Reading",
+        "status_completed": "Completed",
+        "status_dropped": "Dropped",
+        "my_rating": "My Rating (Optional)",
+        "set_my_rating": "Set personal rating",
+        "set_finished_date": "Set finished date",
+        "finished_date": "Finished Date",
+        "reading_notes": "Notes",
+        "reading_search": "Book title keyword",
+        "reading_search_placeholder": "Type a title to quickly find books",
+        "select_book_for_reading": "Select book",
+        "save_reading_entry": "Save Reading Entry",
+        "delete_reading_entry": "Delete Reading Entry",
+        "select_reading_entry": "Select reading entry",
+        "reading_saved": "Reading entry saved.",
+        "reading_deleted": "Reading entry deleted.",
+        "reading_export": "Download Reading CSV",
+        "reading_export_hint": "Export includes title, authors, status, personal rating, notes, and timestamps.",
+        "reading_export_ready": "{count} rows ready for export",
+        "status_breakdown": "Status breakdown",
+        "completed_date_hint": "Completed status usually should include a finished date.",
+        "book_admin_hint": "Add, edit, and delete books. Required fields are marked with * and validated before saving.",
+        "book_add_section": "➕ Add Book",
+        "book_edit_section": "✏️ Edit Or Delete Book",
+        "book_title": "Book Title",
+        "book_authors_input": "Authors",
+        "book_authors_placeholder": "Use commas to separate multiple authors",
+        "book_language_input": "Language",
+        "book_publisher_input": "Publisher",
+        "book_isbn_input": "ISBN",
+        "book_isbn13_input": "ISBN13",
+        "book_pages_input": "Pages",
+        "book_num_ratings_input": "Ratings Count",
+        "book_reviews_count_input": "Text Reviews Count",
+        "book_publish_year_input": "Publish Year",
+        "book_rating_input": "Rating",
+        "book_search": "Book keyword",
+        "book_search_placeholder": "Search title to edit or delete",
+        "select_existing_book": "Select existing book",
+        "add_book_btn": "Add Book",
+        "update_book_btn": "Update Book",
+        "delete_book_btn": "Delete Book",
+        "confirm_delete_book": "I confirm deleting this book and all related records.",
+        "book_added": "Book added successfully.",
+        "book_updated": "Book updated successfully.",
+        "book_deleted": "Book deleted.",
+        "required_field_missing": "Please fill in all required fields.",
+        "invalid_authors": "Please enter at least one valid author.",
+        "invalid_year": "Publish year must be between 1800 and 2030.",
+        "invalid_rating": "Rating must be between 0 and 5.",
+        "invalid_integer": "{field} must be an integer.",
+        "invalid_positive": "{field} must be greater than 0.",
+        "invalid_nonnegative": "{field} must be greater than or equal to 0.",
+        "invalid_isbn13": "ISBN13 must contain digits only.",
+        "confirm_delete_required": "Please check the confirmation box before deleting.",
         "rows_returned": "{count} rows returned",
         "hero_badge_dataset": "11 K books",
         "hero_badge_bilingual": "Bilingual UI",
@@ -83,22 +165,24 @@ TRANSLATIONS = {
         "rating_weight_delta": "vs unweighted {value}",
         "books_yoy_change": "Year-over-year Change",
         "book_detail": "📖  Book Detail",
-        "select_book_hint": "Select a row to view richer details from Google Books",
+        "select_book_hint": "Select a row to view richer details from Open Library",
         "select_book": "Select a book to view details",
         "book_by": "Author: {authors}",
         "book_publisher": "Publisher",
+        "book_source": "Source",
         "book_pages": "Pages",
         "book_published": "Published",
         "book_isbn": "ISBN",
         "book_categories": "Categories",
-        "book_preview": "Preview on Google Books",
+        "book_preview": "View on Open Library",
         "book_description": "Description",
-        "book_no_result": "No results found on Google Books for this title.",
-        "book_api_error": "Could not connect to Google Books API.",
-        "book_loading": "Looking up on Google Books …",
+        "book_no_result": "No results found on Open Library for this title.",
+        "book_api_error": "Could not connect to Open Library API.",
+        "book_api_error_with_reason": "Could not connect to Open Library API: {reason}",
+        "book_loading": "Looking up on Open Library …",
         "rating_compare": "Rating Comparison",
         "rating_goodreads": "Goodreads",
-        "rating_google": "Google Books",
+        "rating_google": "Open Library",
         "rating_people": "{count} ratings",
         "review_sites": "Quick Links",
         "filter_language": "Language",
@@ -119,9 +203,26 @@ TRANSLATIONS = {
         "page_search": "🔍  条件查询",
         "page_explore": "🧭  探索",
         "page_analytics": "📊  统计分析",
+        "page_reading_list": "📚  书单管理",
         "no_data": "当前筛选条件下没有数据。",
         "title_keyword": "书名关键词",
         "title_keyword_placeholder": "例如：哈利·波特",
+        "google_fallback_title": "🌐  没有你想要的书籍？请直接输入书名在 Open Library 中搜索",
+        "google_fallback_hint": "如果本地数据库里没有你想要的书，可以直接输入书名调用 Open Library 搜索。",
+        "google_fallback_input": "书名",
+        "google_fallback_placeholder": "例如：活着",
+        "google_fallback_author_input": "作者（可选）",
+        "google_fallback_author_placeholder": "例如：余华",
+        "google_fallback_button": "搜索 Open Library",
+        "google_fallback_empty": "请输入书名。",
+        "google_fallback_loading": "正在搜索 Open Library …",
+        "google_fallback_no_result": "Open Library 中未找到匹配结果。",
+        "openlib_import_button": "快捷导入到本地数据库",
+        "openlib_imported": "已导入本地数据库（ID {book_id}）。",
+        "openlib_import_exists": "该书已存在于本地数据库（ID {book_id}）。",
+        "openlib_import_failed": "导入失败：{reason}",
+        "close_detail_panel": "← 关闭详情",
+        "detail_panel_closed": "该行详情已关闭，选择其它行可重新打开。",
         "publish_year": "出版年份",
         "rating": "评分",
         "result_limit": "结果上限",
@@ -151,8 +252,71 @@ TRANSLATIONS = {
         "search_hint": "可组合书名、年份、评分条件检索。",
         "explore_hint": "深入某个作者或出版社，发现更多图书。",
         "analytics_hint": "用可视化摘要理解数据分布与覆盖。",
+        "reading_list_hint": "记录阅读状态、导出阅读进度，并维护图书目录。",
         "filter_panel": "⚙️  筛选条件",
         "results_panel": "📋  查询结果",
+        "tab_my_reading": "📖 我的阅读",
+        "tab_manage_books": "🛠️ 图书维护",
+        "reading_add_section": "➕ 新增或更新阅读记录",
+        "reading_export_section": "📤 导出阅读数据",
+        "reading_table_section": "📋 阅读记录",
+        "reading_status": "阅读状态",
+        "status_want_to_read": "想读",
+        "status_reading": "在读",
+        "status_completed": "已读完",
+        "status_dropped": "已弃读",
+        "my_rating": "我的评分（可选）",
+        "set_my_rating": "设置个人评分",
+        "set_finished_date": "设置完成日期",
+        "finished_date": "完成日期",
+        "reading_notes": "备注",
+        "reading_search": "书名关键词",
+        "reading_search_placeholder": "输入书名快速检索",
+        "select_book_for_reading": "选择图书",
+        "save_reading_entry": "保存阅读记录",
+        "delete_reading_entry": "删除阅读记录",
+        "select_reading_entry": "选择阅读记录",
+        "reading_saved": "阅读记录已保存。",
+        "reading_deleted": "阅读记录已删除。",
+        "reading_export": "下载阅读 CSV",
+        "reading_export_hint": "导出包含书名、作者、阅读状态、个人评分、备注与更新时间。",
+        "reading_export_ready": "可导出 {count} 行数据",
+        "status_breakdown": "状态分布",
+        "completed_date_hint": "当状态为“已读完”时，建议填写完成日期。",
+        "book_admin_hint": "支持新增、编辑、删除图书。带 * 的字段为必填，保存前会做规范校验。",
+        "book_add_section": "➕ 新增图书",
+        "book_edit_section": "✏️ 编辑或删除图书",
+        "book_title": "书名",
+        "book_authors_input": "作者",
+        "book_authors_placeholder": "多个作者请使用逗号分隔",
+        "book_language_input": "语言",
+        "book_publisher_input": "出版社",
+        "book_isbn_input": "ISBN",
+        "book_isbn13_input": "ISBN13",
+        "book_pages_input": "页数",
+        "book_num_ratings_input": "评分人数",
+        "book_reviews_count_input": "评论数",
+        "book_publish_year_input": "出版年份",
+        "book_rating_input": "评分",
+        "book_search": "图书关键词",
+        "book_search_placeholder": "输入书名用于编辑或删除",
+        "select_existing_book": "选择已有图书",
+        "add_book_btn": "新增图书",
+        "update_book_btn": "更新图书",
+        "delete_book_btn": "删除图书",
+        "confirm_delete_book": "我确认删除该图书及相关记录。",
+        "book_added": "图书新增成功。",
+        "book_updated": "图书更新成功。",
+        "book_deleted": "图书已删除。",
+        "required_field_missing": "请填写所有必填字段。",
+        "invalid_authors": "请至少填写一位有效作者。",
+        "invalid_year": "出版年份必须在 1800 到 2030 之间。",
+        "invalid_rating": "评分必须在 0 到 5 之间。",
+        "invalid_integer": "{field} 必须是整数。",
+        "invalid_positive": "{field} 必须大于 0。",
+        "invalid_nonnegative": "{field} 必须大于或等于 0。",
+        "invalid_isbn13": "ISBN13 只能包含数字。",
+        "confirm_delete_required": "删除前请先勾选确认。",
         "rows_returned": "返回 {count} 行",
         "hero_badge_dataset": "1.1 万本图书",
         "hero_badge_bilingual": "中英双语",
@@ -166,22 +330,24 @@ TRANSLATIONS = {
         "rating_weight_delta": "对比未加权 {value}",
         "books_yoy_change": "同比变化",
         "book_detail": "📖  图书详情",
-        "select_book_hint": "点击表格中的行，即可查看来自 Google Books 的详细信息",
+        "select_book_hint": "点击表格中的行，即可查看来自 Open Library 的详细信息",
         "select_book": "选择一本书查看详情",
         "book_by": "作者：{authors}",
         "book_publisher": "出版社",
+        "book_source": "来源",
         "book_pages": "页数",
         "book_published": "出版日期",
         "book_isbn": "ISBN",
         "book_categories": "分类",
-        "book_preview": "在 Google Books 中预览",
+        "book_preview": "在 Open Library 中查看",
         "book_description": "简介",
-        "book_no_result": "未在 Google Books 中找到该书。",
-        "book_api_error": "无法连接 Google Books API。",
-        "book_loading": "正在查询 Google Books …",
+        "book_no_result": "未在 Open Library 中找到该书。",
+        "book_api_error": "无法连接 Open Library API。",
+        "book_api_error_with_reason": "无法连接 Open Library API：{reason}",
+        "book_loading": "正在查询 Open Library …",
         "rating_compare": "评分对比",
         "rating_goodreads": "Goodreads",
-        "rating_google": "Google Books",
+        "rating_google": "Open Library",
         "rating_people": "{count} 人评分",
         "review_sites": "快捷搜索",
         "filter_language": "语言",
@@ -205,6 +371,11 @@ COLUMN_LABELS = {
         "ratings_volume": "Rating Volume",
         "yearly_change_pct": "YoY %",
         "books_count_rolling": "5Y Avg",
+        "status": "Status",
+        "personal_rating": "My Rating",
+        "finished_date": "Finished Date",
+        "notes": "Notes",
+        "updated_at": "Updated At",
     },
     "zh": {
         "title": "书名", "publish_year": "出版年份", "rating": "评分",
@@ -217,6 +388,11 @@ COLUMN_LABELS = {
         "ratings_volume": "评分人数",
         "yearly_change_pct": "同比%",
         "books_count_rolling": "5年均值",
+        "status": "阅读状态",
+        "personal_rating": "我的评分",
+        "finished_date": "完成日期",
+        "notes": "备注",
+        "updated_at": "更新时间",
     },
 }
 
@@ -235,6 +411,184 @@ def _rename_rows(rows: List[dict], lang: str) -> List[dict]:
     if not mapping:
         return rows
     return [{mapping.get(k, k): v for k, v in row.items()} for row in rows]
+
+
+READING_STATUS = ["want_to_read", "reading", "completed", "dropped"]
+
+
+def reading_status_options(t) -> List[tuple[str, str]]:
+    return [(code, t(f"status_{code}")) for code in READING_STATUS]
+
+
+def reading_status_label(status: str, t) -> str:
+    labels = dict(reading_status_options(t))
+    return labels.get(status, status)
+
+
+def parse_author_names(authors_text: str) -> List[str]:
+    parts = re.split(r"[,/;\n]+", authors_text or "")
+    clean_parts = []
+    seen = set()
+    for raw in parts:
+        name = raw.strip()
+        if not name:
+            continue
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        clean_parts.append(name)
+    return clean_parts
+
+
+OPENLIB_LANGUAGE_NAMES = {
+    "eng": "English",
+    "en": "English",
+    "chi": "Chinese",
+    "zho": "Chinese",
+    "fre": "French",
+    "fra": "French",
+    "ger": "German",
+    "deu": "German",
+    "ita": "Italian",
+    "jpn": "Japanese",
+    "spa": "Spanish",
+    "rus": "Russian",
+    "por": "Portuguese",
+    "ara": "Arabic",
+}
+
+
+def normalize_openlib_language(codes: Any) -> str | None:
+    if not isinstance(codes, list) or not codes:
+        return None
+
+    def _extract_lang_code(raw: Any) -> str | None:
+        if isinstance(raw, dict):
+            key = raw.get("key")
+            if isinstance(key, str):
+                raw = key
+        if not isinstance(raw, str):
+            return None
+        text = raw.strip().lower()
+        if not text:
+            return None
+        # Supports formats like "eng", "/languages/eng", "http://.../languages/eng"
+        if "/languages/" in text:
+            text = text.split("/languages/")[-1]
+        text = text.split("/")[-1]
+        return text or None
+
+    for raw in codes:
+        code = _extract_lang_code(raw)
+        if not code:
+            continue
+        if code in OPENLIB_LANGUAGE_NAMES:
+            return OPENLIB_LANGUAGE_NAMES[code]
+        return code
+    return None
+
+
+def parse_year_from_text(value: Any) -> int | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    m = re.search(r"(18\d{2}|19\d{2}|20[0-2]\d|2030)", text)
+    if not m:
+        return None
+    try:
+        year = int(m.group(1))
+    except ValueError:
+        return None
+    if 1800 <= year <= 2030:
+        return year
+    return None
+
+
+def parse_optional_int(value: str, field_label: str, t, *, positive: bool = False, nonnegative: bool = False) -> tuple[int | None, List[str]]:
+    text = (value or "").strip()
+    if not text:
+        return None, []
+    if not re.fullmatch(r"-?\d+", text):
+        return None, [t("invalid_integer", field=field_label)]
+    parsed = int(text)
+    if positive and parsed <= 0:
+        return None, [t("invalid_positive", field=field_label)]
+    if nonnegative and parsed < 0:
+        return None, [t("invalid_nonnegative", field=field_label)]
+    return parsed, []
+
+
+def sanitize_book_payload(
+    *,
+    title: str,
+    authors_text: str,
+    publish_year: int,
+    rating: float,
+    language: str,
+    pages_text: str,
+    num_ratings_text: str,
+    reviews_text: str,
+    publisher: str,
+    isbn: str,
+    isbn13_text: str,
+    t,
+) -> tuple[dict | None, List[str]]:
+    errors: List[str] = []
+
+    clean_title = (title or "").strip()
+    clean_language = (language or "").strip()
+    clean_publisher = (publisher or "").strip() or None
+    clean_isbn = (isbn or "").strip() or None
+
+    authors = parse_author_names(authors_text)
+    if not clean_title or not clean_language:
+        errors.append(t("required_field_missing"))
+    if not authors:
+        errors.append(t("invalid_authors"))
+
+    if publish_year < 1800 or publish_year > 2030:
+        errors.append(t("invalid_year"))
+    if rating < 0 or rating > 5:
+        errors.append(t("invalid_rating"))
+
+    pages, page_errors = parse_optional_int(
+        pages_text, t("book_pages_input"), t, positive=True
+    )
+    num_ratings, ratings_errors = parse_optional_int(
+        num_ratings_text, t("book_num_ratings_input"), t, nonnegative=True
+    )
+    text_reviews_count, review_errors = parse_optional_int(
+        reviews_text, t("book_reviews_count_input"), t, nonnegative=True
+    )
+    errors.extend(page_errors + ratings_errors + review_errors)
+
+    isbn13_clean = (isbn13_text or "").strip()
+    if isbn13_clean and not isbn13_clean.isdigit():
+        errors.append(t("invalid_isbn13"))
+        isbn13 = None
+    else:
+        isbn13 = int(isbn13_clean) if isbn13_clean else None
+
+    if errors:
+        return None, errors
+
+    payload = {
+        "title": clean_title,
+        "language": clean_language,
+        "publish_year": int(publish_year),
+        "rating": float(rating),
+        "pages": pages,
+        "num_ratings": num_ratings,
+        "text_reviews_count": text_reviews_count,
+        "publisher_name": clean_publisher,
+        "isbn": clean_isbn,
+        "isbn13": isbn13,
+        "authors": authors,
+    }
+    return payload, []
 
 
 # ---------------------------------------------------------------------------
@@ -662,6 +1016,16 @@ h1, h2, h3 {{
 }}
 
 /* === Book detail right panel === */
+.book-panel-root {{
+    position: relative;
+    z-index: 9999;
+}}
+.book-panel-toggle {{
+    display: none;
+}}
+.book-panel-toggle:checked + .book-panel-overlay {{
+    display: none;
+}}
 .book-panel-overlay {{
     position: fixed;
     top: 0; right: 0;
@@ -698,6 +1062,25 @@ h1, h2, h3 {{
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: var(--muted);
+}}
+.book-panel-close {{
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.03);
+    color: var(--ink);
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}}
+.book-panel-close:hover {{
+    border-color: var(--accent);
+    background: var(--card-hover);
 }}
 .book-panel-cover {{
     width: 100%;
@@ -946,6 +1329,141 @@ def run_scalar(conn: sqlite3.Connection, sql: str, params: Iterable[Any] = ()) -
     return conn.execute(sql, tuple(params)).fetchone()[0]
 
 
+def ensure_app_schema(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS reading_list (
+            book_id INTEGER PRIMARY KEY,
+            status TEXT NOT NULL CHECK (status IN ('want_to_read', 'reading', 'completed', 'dropped')),
+            personal_rating REAL CHECK (personal_rating IS NULL OR (personal_rating BETWEEN 0 AND 5)),
+            finished_date TEXT,
+            notes TEXT,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (book_id) REFERENCES books(book_id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_reading_list_status ON reading_list(status);
+        CREATE INDEX IF NOT EXISTS idx_reading_list_updated_at ON reading_list(updated_at);
+        """
+    )
+
+
+def ensure_author_id(conn: sqlite3.Connection, author_name: str) -> int:
+    conn.execute("INSERT OR IGNORE INTO authors(author_name) VALUES (?)", (author_name,))
+    row = conn.execute(
+        "SELECT author_id FROM authors WHERE author_name = ?",
+        (author_name,),
+    ).fetchone()
+    if row is None:
+        raise RuntimeError(f"Could not create/find author: {author_name}")
+    return int(row[0])
+
+
+def get_author_line(conn: sqlite3.Connection, book_id: int) -> str:
+    row = conn.execute(
+        """
+        SELECT GROUP_CONCAT(author_name, ', ')
+        FROM (
+            SELECT a.author_name AS author_name
+            FROM book_authors ba
+            JOIN authors a ON a.author_id = ba.author_id
+            WHERE ba.book_id = ?
+            ORDER BY ba.author_order
+        )
+        """,
+        (book_id,),
+    ).fetchone()
+    return row[0] if row and row[0] else ""
+
+
+def import_external_book_to_db(conn: sqlite3.Connection, info: dict) -> tuple[str, int | str]:
+    title = (info.get("title") or "").strip()
+    if not title:
+        return "error", "missing title"
+
+    isbn_13_raw = str(info.get("isbn_13") or "").strip()
+    isbn_13_digits = re.sub(r"[^0-9]", "", isbn_13_raw)
+    isbn_13 = int(isbn_13_digits) if len(isbn_13_digits) == 13 else None
+
+    isbn_10_raw = str(info.get("isbn_10") or "").strip()
+    isbn_10 = re.sub(r"[^0-9Xx]", "", isbn_10_raw).upper() or None
+
+    publish_year = parse_year_from_text(info.get("published_date"))
+    pages = info.get("page_count") if isinstance(info.get("page_count"), int) and info.get("page_count") > 0 else None
+    publisher = (info.get("publisher") or "").strip() or None
+    language = normalize_openlib_language(info.get("language_codes"))
+    import_rating = _parse_openlibrary_rating(info.get("google_rating"))
+    import_num_ratings = _parse_openlibrary_count(info.get("google_ratings_count"))
+
+    authors = [
+        a.strip()
+        for a in (info.get("authors") or [])
+        if isinstance(a, str) and a.strip()
+    ]
+
+    existing_row = None
+    if isbn_13 is not None:
+        existing_row = conn.execute(
+            "SELECT book_id FROM books WHERE isbn13 = ? LIMIT 1",
+            (isbn_13,),
+        ).fetchone()
+    if existing_row is None and isbn_10:
+        existing_row = conn.execute(
+            "SELECT book_id FROM books WHERE isbn = ? LIMIT 1",
+            (isbn_10,),
+        ).fetchone()
+    if existing_row is None and publish_year is not None:
+        existing_row = conn.execute(
+            "SELECT book_id FROM books WHERE title = ? AND publish_year = ? LIMIT 1",
+            (title, publish_year),
+        ).fetchone()
+    if existing_row is None:
+        existing_row = conn.execute(
+            "SELECT book_id FROM books WHERE title = ? LIMIT 1",
+            (title,),
+        ).fetchone()
+    if existing_row is not None:
+        return "existing", int(existing_row[0])
+
+    next_book_id = int(run_scalar(conn, "SELECT COALESCE(MAX(book_id), 0) + 1 FROM books"))
+
+    try:
+        with conn:
+            conn.execute(
+                """
+                INSERT INTO books (
+                    book_id, title, isbn, isbn13, language, pages, publisher_name,
+                    publish_year, num_ratings, rating, text_reviews_count
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    next_book_id,
+                    title,
+                    isbn_10,
+                    isbn_13,
+                    language,
+                    pages,
+                    publisher,
+                    publish_year,
+                    import_num_ratings,
+                    import_rating,
+                    None,
+                ),
+            )
+
+            for idx, author_name in enumerate(authors, start=1):
+                author_id = ensure_author_id(conn, author_name)
+                conn.execute(
+                    "INSERT INTO book_authors(book_id, author_id, author_order) VALUES (?, ?, ?)",
+                    (next_book_id, author_id, idx),
+                )
+    except sqlite3.DatabaseError as err:
+        return "error", str(err)
+
+    return "imported", next_book_id
+
+
 def show_table(rows: List[dict], t, lang: str = "en", height: int = 420) -> None:
     if rows:
         row_count_badge(len(rows), t)
@@ -955,55 +1473,309 @@ def show_table(rows: List[dict], t, lang: str = "en", height: int = 420) -> None
 
 
 # ---------------------------------------------------------------------------
-# Google Books API
+# External Book APIs
 # ---------------------------------------------------------------------------
-GOOGLE_BOOKS_URL = "https://www.googleapis.com/books/v1/volumes"
+OPENLIB_SEARCH_URL = "https://openlibrary.org/search.json"
+OPENLIB_WORK_URL_TMPL = "https://openlibrary.org{work_key}.json"
+OPENLIB_WORK_EDITIONS_URL_TMPL = "https://openlibrary.org{work_key}/editions.json"
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def fetch_google_book(title: str, author: str | None = None) -> dict | None:
-    """Query Google Books API by title (+ optional author) and return the best match."""
-    q = f'intitle:{title}'
-    if author:
-        q += f'+inauthor:{author}'
+def _short_api_error_reason(err: Exception) -> str:
+    if isinstance(err, requests.Timeout):
+        return "request timeout"
+    if isinstance(err, requests.ConnectionError):
+        msg = str(err).lower()
+        if "nameresolutionerror" in msg or "nodename nor servname" in msg or "name or service not known" in msg:
+            return "dns resolution failed"
+        return "network connection failed"
+    if isinstance(err, requests.HTTPError):
+        status = err.response.status_code if err.response is not None else "unknown"
+        if status == 403:
+            return "HTTP 403 (forbidden)"
+        if status == 429:
+            return "HTTP 429 (rate limit)"
+        return f"HTTP {status}"
+    if isinstance(err, ValueError):
+        return "invalid API response"
+    return "unknown error"
+
+
+def _parse_openlibrary_rating(value: Any) -> float | None:
+    if value is None:
+        return None
     try:
-        resp = requests.get(
-            GOOGLE_BOOKS_URL,
-            params={"q": q, "maxResults": 1},
-            timeout=8,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-    except (requests.RequestException, ValueError):
+        parsed = float(value)
+    except (TypeError, ValueError):
         return None
-
-    items = data.get("items")
-    if not items:
+    if parsed < 0 or parsed > 5:
         return None
+    return round(parsed, 2)
 
-    vol = items[0].get("volumeInfo", {})
-    cover = vol.get("imageLinks", {})
-    identifiers = {i["type"]: i["identifier"] for i in vol.get("industryIdentifiers", [])}
+
+def _parse_openlibrary_count(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return None
+            parsed = int(float(text))
+        else:
+            parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    if parsed < 0:
+        return None
+    return parsed
+
+
+def _normalize_openlibrary_doc(doc: dict, title_fallback: str) -> dict:
+    isbn_13 = None
+    isbn_10 = None
+    for isbn in doc.get("isbn", []) or []:
+        if not isinstance(isbn, str):
+            continue
+        digits = re.sub(r"[^0-9Xx]", "", isbn)
+        if len(digits) == 13 and isbn_13 is None:
+            isbn_13 = digits
+        elif len(digits) == 10 and isbn_10 is None:
+            isbn_10 = digits.upper()
+
+    cover_id = doc.get("cover_i")
+    thumbnail = (
+        f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg?default=false"
+        if cover_id
+        else None
+    )
+    published_year = doc.get("first_publish_year")
+    publishers = doc.get("publisher") or []
+    subjects = doc.get("subject") or []
+    key = doc.get("key")
+    preview_link = f"https://openlibrary.org{key}" if key else None
 
     return {
-        "title": vol.get("title", title),
-        "authors": vol.get("authors", []),
-        "publisher": vol.get("publisher"),
-        "published_date": vol.get("publishedDate"),
-        "description": vol.get("description"),
-        "page_count": vol.get("pageCount"),
-        "categories": vol.get("categories", []),
-        "thumbnail": cover.get("thumbnail") or cover.get("smallThumbnail"),
-        "preview_link": vol.get("previewLink"),
-        "isbn_13": identifiers.get("ISBN_13"),
-        "isbn_10": identifiers.get("ISBN_10"),
-        "google_rating": vol.get("averageRating"),
-        "google_ratings_count": vol.get("ratingsCount"),
+        "title": doc.get("title") or title_fallback,
+        "authors": doc.get("author_name", []) or [],
+        "language_codes": doc.get("language", []) or [],
+        "publisher": publishers[0] if publishers else None,
+        "published_date": str(published_year) if published_year else None,
+        "description": None,
+        "page_count": doc.get("number_of_pages_median"),
+        "categories": subjects[:3] if subjects else [],
+        "thumbnail": thumbnail,
+        "preview_link": preview_link,
+        "isbn_13": isbn_13,
+        "isbn_10": isbn_10,
+        "google_rating": _parse_openlibrary_rating(doc.get("ratings_average")),
+        "google_ratings_count": _parse_openlibrary_count(doc.get("ratings_count")),
+        "data_source": "Open Library",
     }
 
 
+def _extract_openlibrary_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        text = value.strip()
+        return text or None
+    if isinstance(value, dict):
+        nested = value.get("value") or value.get("text")
+        if isinstance(nested, str):
+            text = nested.strip()
+            return text or None
+    return None
+
+
+def _first_valid_isbn(values: Any, length: int) -> str | None:
+    if not isinstance(values, list):
+        return None
+    for raw in values:
+        if not isinstance(raw, str):
+            continue
+        digits = re.sub(r"[^0-9Xx]", "", raw)
+        if len(digits) == length:
+            return digits.upper()
+    return None
+
+
+def _first_cover_url(values: Any) -> str | None:
+    if not isinstance(values, list) or not values:
+        return None
+    cover_id = values[0]
+    if isinstance(cover_id, int):
+        return f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg?default=false"
+    return None
+
+
+def _first_text(values: Any) -> str | None:
+    if not isinstance(values, list):
+        return None
+    for item in values:
+        if isinstance(item, str) and item.strip():
+            return item.strip()
+    return None
+
+
+def _enrich_openlibrary_info(base_info: dict, work_key: str | None) -> dict:
+    if not work_key:
+        return base_info
+
+    info = dict(base_info)
+
+    # 1) Work-level enrichment: description/subjects/covers
+    try:
+        work_resp = requests.get(
+            OPENLIB_WORK_URL_TMPL.format(work_key=work_key),
+            headers={"User-Agent": "BooksDatabaseExplorer/1.0 (contact: local-app)"},
+            timeout=8,
+        )
+        work_resp.raise_for_status()
+        work = work_resp.json()
+    except (requests.RequestException, ValueError):
+        work = None
+
+    if work:
+        if not info.get("description"):
+            info["description"] = _extract_openlibrary_text(work.get("description"))
+        if not info.get("categories"):
+            subjects = work.get("subjects")
+            if isinstance(subjects, list):
+                info["categories"] = [s for s in subjects[:3] if isinstance(s, str)]
+        if not info.get("thumbnail"):
+            info["thumbnail"] = _first_cover_url(work.get("covers"))
+
+    # 2) Edition-level enrichment: ISBN/publisher/pages/publish date (+fallback desc/subjects/covers)
+    try:
+        editions_resp = requests.get(
+            OPENLIB_WORK_EDITIONS_URL_TMPL.format(work_key=work_key),
+            params={"limit": 20},
+            headers={"User-Agent": "BooksDatabaseExplorer/1.0 (contact: local-app)"},
+            timeout=8,
+        )
+        editions_resp.raise_for_status()
+        editions_data = editions_resp.json()
+    except (requests.RequestException, ValueError):
+        editions_data = None
+
+    entries = editions_data.get("entries") if isinstance(editions_data, dict) else None
+    if not isinstance(entries, list) or not entries:
+        return info
+
+    def _edition_score(ed: dict) -> int:
+        score = 0
+        if _first_valid_isbn(ed.get("isbn_13"), 13):
+            score += 3
+        if _first_valid_isbn(ed.get("isbn_10"), 10):
+            score += 2
+        if _first_text(ed.get("publishers")):
+            score += 1
+        if ed.get("number_of_pages"):
+            score += 1
+        if _extract_openlibrary_text(ed.get("description")):
+            score += 1
+        if isinstance(ed.get("subjects"), list) and ed.get("subjects"):
+            score += 1
+        return score
+
+    best_edition = max((e for e in entries if isinstance(e, dict)), key=_edition_score, default=None)
+    if not isinstance(best_edition, dict):
+        return info
+
+    if not info.get("isbn_13"):
+        info["isbn_13"] = _first_valid_isbn(best_edition.get("isbn_13"), 13)
+    if not info.get("isbn_10"):
+        info["isbn_10"] = _first_valid_isbn(best_edition.get("isbn_10"), 10)
+    if not info.get("publisher"):
+        info["publisher"] = _first_text(best_edition.get("publishers"))
+    if not info.get("published_date"):
+        publish_date = best_edition.get("publish_date")
+        if isinstance(publish_date, str):
+            info["published_date"] = publish_date
+    if not info.get("page_count"):
+        page_count = best_edition.get("number_of_pages")
+        if isinstance(page_count, int):
+            info["page_count"] = page_count
+    if not info.get("language_codes"):
+        languages = best_edition.get("languages")
+        if isinstance(languages, list) and languages:
+            info["language_codes"] = languages
+    if not info.get("description"):
+        info["description"] = _extract_openlibrary_text(best_edition.get("description"))
+    if not info.get("categories"):
+        subjects = best_edition.get("subjects")
+        if isinstance(subjects, list):
+            info["categories"] = [s for s in subjects[:3] if isinstance(s, str)]
+    if not info.get("thumbnail"):
+        info["thumbnail"] = _first_cover_url(best_edition.get("covers"))
+
+    return info
+
+
+def fetch_openlibrary_book(title: str, author: str | None = None) -> tuple[dict | None, str, str | None]:
+    clean_title = (title or "").strip()
+    clean_author = (author or "").strip()
+    if not clean_title:
+        return None, "not_found", None
+
+    param_sets = []
+    if clean_author:
+        param_sets.append({"title": clean_title, "author": clean_author, "limit": 5})
+    param_sets.append({"title": clean_title, "limit": 5})
+    param_sets.append({"q": clean_title, "limit": 5})
+
+    unique_param_sets = []
+    seen = set()
+    for params in param_sets:
+        key = tuple(sorted(params.items()))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_param_sets.append(params)
+
+    last_reason: str | None = None
+    had_api_error = False
+
+    for params in unique_param_sets:
+        try:
+            resp = requests.get(
+                OPENLIB_SEARCH_URL,
+                params=params,
+                headers={"User-Agent": "BooksDatabaseExplorer/1.0 (contact: local-app)"},
+                timeout=8,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except (requests.RequestException, ValueError) as err:
+            had_api_error = True
+            last_reason = _short_api_error_reason(err)
+            continue
+
+        docs = data.get("docs")
+        if not docs:
+            continue
+
+        first_doc = docs[0]
+        if not isinstance(first_doc, dict):
+            continue
+
+        base_info = _normalize_openlibrary_doc(first_doc, clean_title)
+        work_key = first_doc.get("key") if isinstance(first_doc.get("key"), str) else None
+        enriched_info = _enrich_openlibrary_info(base_info, work_key)
+        return enriched_info, "ok", None
+
+    if had_api_error:
+        return None, "api_error", last_reason
+    return None, "not_found", None
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_openlibrary_book_cached(title: str, author: str | None = None) -> tuple[dict | None, str, str | None]:
+    return fetch_openlibrary_book(title, author)
+
+
 def render_book_card(info: dict, t, db_book: dict | None = None) -> None:
-    """Render a right-side sliding panel with book details from Google Books."""
+    """Render a right-side sliding panel with external book details."""
     import html as _html
     from urllib.parse import quote_plus as _qp
 
@@ -1019,6 +1791,8 @@ def render_book_card(info: dict, t, db_book: dict | None = None) -> None:
 
     # Meta chips
     chips = []
+    if info.get("data_source"):
+        chips.append(f'📡 {t("book_source")}: {_html.escape(str(info["data_source"]))}')
     if info.get("publisher"):
         chips.append(f'🏢 {_html.escape(info["publisher"])}')
     if info.get("published_date"):
@@ -1102,11 +1876,15 @@ def render_book_card(info: dict, t, db_book: dict | None = None) -> None:
         preview_html = f'<a class="book-panel-preview" href="{info["preview_link"]}" target="_blank" rel="noopener noreferrer">🔗 {btn_text}</a>'
 
     header_label = t("book_detail")
+    panel_id = f"book-panel-toggle-{abs(hash((info.get('title'), info.get('isbn_13'), info.get('isbn_10'), info.get('preview_link'))))}"
 
     panel = (
+        '<div class="book-panel-root">'
+        f'<input type="checkbox" id="{panel_id}" class="book-panel-toggle">'
         '<div class="book-panel-overlay">'
         '<div class="book-panel-header">'
         f'<span class="book-panel-header-title">{header_label}</span>'
+        f'<label for="{panel_id}" class="book-panel-close" title="Close">←</label>'
         '</div>'
         f'<div class="book-panel-cover">{cover_html}</div>'
         '<div class="book-panel-body">'
@@ -1119,6 +1897,7 @@ def render_book_card(info: dict, t, db_book: dict | None = None) -> None:
         f'{preview_html}'
         '</div>'
         '</div>'
+        '</div>'
     )
     st.markdown(panel, unsafe_allow_html=True)
 
@@ -1129,6 +1908,10 @@ def render_book_card(info: dict, t, db_book: dict | None = None) -> None:
 def page_search(conn: sqlite3.Connection, t, lang: str) -> None:
     st.header(t("page_search"))
     page_subtitle(t("search_hint"))
+    if "openlib_quick_result" not in st.session_state:
+        st.session_state.openlib_quick_result = None
+    if "openlib_quick_query" not in st.session_state:
+        st.session_state.openlib_quick_query = ""
 
     section_title(t("filter_panel"))
 
@@ -1178,6 +1961,16 @@ def page_search(conn: sqlite3.Connection, t, lang: str) -> None:
     SELECT
         b.book_id,
         b.title,
+        (
+            SELECT GROUP_CONCAT(author_name, ', ')
+            FROM (
+                SELECT a.author_name AS author_name
+                FROM book_authors ba
+                JOIN authors a ON a.author_id = ba.author_id
+                WHERE ba.book_id = b.book_id
+                ORDER BY ba.author_order
+            )
+        ) AS authors,
         b.publish_year,
         b.rating,
         b.num_ratings,
@@ -1187,15 +1980,22 @@ def page_search(conn: sqlite3.Connection, t, lang: str) -> None:
     WHERE 1=1
     """
     params: List[Any] = []
+    keyword_text = keyword.strip()
 
-    if keyword.strip():
+    if keyword_text:
         sql += " AND b.title LIKE ?"
-        params.append(f"%{keyword.strip()}%")
+        params.append(f"%{keyword_text}%")
 
-    sql += " AND b.publish_year BETWEEN ? AND ?"
+    if keyword_text:
+        sql += " AND (b.publish_year BETWEEN ? AND ? OR b.publish_year IS NULL)"
+    else:
+        sql += " AND b.publish_year BETWEEN ? AND ?"
     params.extend([year_range[0], year_range[1]])
 
-    sql += " AND b.rating BETWEEN ? AND ?"
+    if keyword_text:
+        sql += " AND (b.rating BETWEEN ? AND ? OR b.rating IS NULL)"
+    else:
+        sql += " AND b.rating BETWEEN ? AND ?"
     params.extend([rating_range[0], rating_range[1]])
 
     if selected_lang is not None:
@@ -1207,53 +2007,722 @@ def page_search(conn: sqlite3.Connection, t, lang: str) -> None:
     rows = run_query(conn, sql, params)
 
     # Separate book_id from display rows
-    book_id_map = {r["title"]: r["book_id"] for r in rows}
+    book_ids = [r["book_id"] for r in rows]
     display_rows = [{k: v for k, v in r.items() if k != "book_id"} for r in rows]
 
     section_title(t("results_panel"))
 
     if not display_rows:
         st.info(t("no_data"))
-        return
+    else:
+        row_count_badge(len(display_rows), t)
+        st.caption(t("select_book_hint"))
 
-    row_count_badge(len(display_rows), t)
-    st.caption(t("select_book_hint"))
+        df = pd.DataFrame(_rename_rows(display_rows, lang))
+        event = st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True,
+            height=480,
+            on_select="rerun",
+            selection_mode="single-row",
+        )
 
-    df = pd.DataFrame(_rename_rows(display_rows, lang))
-    event = st.dataframe(
-        df,
-        use_container_width=True,
-        hide_index=True,
-        height=480,
-        on_select="rerun",
-        selection_mode="single-row",
-    )
+        # --- Open Library detail on row click ---
+        selected_indices = event.selection.rows if event and event.selection else []
+        if selected_indices:
+            idx = selected_indices[0]
+            if idx < len(display_rows):
+                selected_title = display_rows[idx]["title"]
 
-    # --- Google Books detail on row click ---
-    selected_indices = event.selection.rows if event and event.selection else []
-    if selected_indices:
-        idx = selected_indices[0]
-        selected_title = display_rows[idx]["title"]
+                # Look up author for better matching
+                bid = book_ids[idx] if idx < len(book_ids) else None
+                author_row = run_query(
+                    conn,
+                    """SELECT a.author_name FROM authors a
+                       JOIN book_authors ba ON a.author_id = ba.author_id
+                       WHERE ba.book_id = ? ORDER BY ba.author_order LIMIT 1""",
+                    (bid,),
+                ) if bid else []
+                author_name = author_row[0]["author_name"] if author_row else None
 
-        # Look up author for better matching
-        bid = book_id_map.get(selected_title)
-        author_row = run_query(
-            conn,
-            """SELECT a.author_name FROM authors a
-               JOIN book_authors ba ON a.author_id = ba.author_id
-               WHERE ba.book_id = ? ORDER BY ba.author_order LIMIT 1""",
-            (bid,),
-        ) if bid else []
-        author_name = author_row[0]["author_name"] if author_row else None
+                with st.spinner(t("book_loading")):
+                    info, status, reason = fetch_openlibrary_book_cached(selected_title, author_name)
+                if info is None:
+                    if status == "api_error":
+                        if reason:
+                            st.warning(t("book_api_error_with_reason", reason=reason))
+                        else:
+                            st.warning(t("book_api_error"))
+                    else:
+                        st.warning(t("book_no_result"))
+                else:
+                    # Pass the DB row for rating comparison
+                    db_book = rows[idx] if idx < len(rows) else None
+                    render_book_card(info, t, db_book=db_book)
 
-        with st.spinner(t("book_loading")):
-            info = fetch_google_book(selected_title, author_name)
-        if info is None:
-            st.warning(t("book_no_result"))
+    section_title(t("google_fallback_title"))
+    st.caption(t("google_fallback_hint"))
+    with st.form("google_fallback_form", clear_on_submit=False):
+        fallback_col_title, fallback_col_author = st.columns(2)
+        with fallback_col_title:
+            fallback_title = st.text_input(
+                t("google_fallback_input"),
+                value="",
+                placeholder=t("google_fallback_placeholder"),
+            )
+        with fallback_col_author:
+            fallback_author = st.text_input(
+                t("google_fallback_author_input"),
+                value="",
+                placeholder=t("google_fallback_author_placeholder"),
+            )
+        fallback_submit = st.form_submit_button(
+            t("google_fallback_button"),
+            type="secondary",
+        )
+
+    if fallback_submit:
+        if not fallback_title.strip():
+            st.warning(t("google_fallback_empty"))
         else:
-            # Pass the DB row for rating comparison
-            db_book = rows[idx] if idx < len(rows) else None
-            render_book_card(info, t, db_book=db_book)
+            fallback_author_text = fallback_author.strip() or None
+            with st.spinner(t("google_fallback_loading")):
+                fallback_info, status, reason = fetch_openlibrary_book_cached(
+                    fallback_title.strip(),
+                    fallback_author_text,
+                )
+            if fallback_info is None:
+                st.session_state.openlib_quick_result = None
+                if status == "api_error":
+                    if reason:
+                        st.warning(t("book_api_error_with_reason", reason=reason))
+                    else:
+                        st.warning(t("book_api_error"))
+                else:
+                    st.warning(t("google_fallback_no_result"))
+            else:
+                st.session_state.openlib_quick_result = fallback_info
+                st.session_state.openlib_quick_query = fallback_title.strip()
+
+    quick_result = st.session_state.get("openlib_quick_result")
+    if isinstance(quick_result, dict):
+        render_book_card(quick_result, t)
+        if st.button(t("openlib_import_button"), key="openlib_import_button"):
+            status, payload = import_external_book_to_db(conn, quick_result)
+            if status == "imported":
+                st.success(t("openlib_imported", book_id=payload))
+            elif status == "existing":
+                st.info(t("openlib_import_exists", book_id=payload))
+            else:
+                st.error(t("openlib_import_failed", reason=str(payload)))
+
+
+def page_reading_list(conn: sqlite3.Connection, t, lang: str) -> None:
+    st.header(t("page_reading_list"))
+    page_subtitle(t("reading_list_hint"))
+
+    tab_my_reading, tab_manage_books = st.tabs([t("tab_my_reading"), t("tab_manage_books")])
+
+    with tab_my_reading:
+        section_title(t("reading_add_section"))
+
+        reading_keyword = st.text_input(
+            t("reading_search"),
+            value="",
+            placeholder=t("reading_search_placeholder"),
+            key="reading_keyword",
+        ).strip()
+
+        reading_candidates = run_query(
+            conn,
+            """
+            SELECT
+                b.book_id,
+                b.title,
+                b.publish_year,
+                COALESCE(
+                    (
+                        SELECT GROUP_CONCAT(author_name, ', ')
+                        FROM (
+                            SELECT a.author_name AS author_name
+                            FROM book_authors ba
+                            JOIN authors a ON a.author_id = ba.author_id
+                            WHERE ba.book_id = b.book_id
+                            ORDER BY ba.author_order
+                        )
+                    ),
+                    ?
+                ) AS authors
+            FROM books b
+            WHERE b.title LIKE ?
+            ORDER BY COALESCE(b.num_ratings, 0) DESC, COALESCE(b.rating, 0) DESC, b.title ASC
+            LIMIT 160
+            """,
+            (t("unknown_author"), f"%{reading_keyword}%"),
+        )
+
+        if not reading_candidates:
+            st.info(t("no_data"))
+        else:
+            candidate_options = {}
+            for row in reading_candidates:
+                year_text = row["publish_year"] if row["publish_year"] is not None else "—"
+                label = f'{row["title"]} ({year_text}) · {row["authors"]} · ID {row["book_id"]}'
+                candidate_options[label] = row["book_id"]
+
+            selected_book_label = st.selectbox(
+                t("select_book_for_reading"),
+                list(candidate_options.keys()),
+                key="reading_selected_book",
+            )
+            selected_book_id = candidate_options[selected_book_label]
+
+            existing_entry_rows = run_query(
+                conn,
+                "SELECT * FROM reading_list WHERE book_id = ?",
+                (selected_book_id,),
+            )
+            existing_entry = existing_entry_rows[0] if existing_entry_rows else None
+
+            status_pairs = reading_status_options(t)
+            status_codes = [code for code, _ in status_pairs]
+            status_labels = [label for _, label in status_pairs]
+            default_status_code = existing_entry["status"] if existing_entry else "want_to_read"
+            default_status_index = (
+                status_codes.index(default_status_code)
+                if default_status_code in status_codes
+                else 0
+            )
+
+            default_set_rating = bool(
+                existing_entry and existing_entry.get("personal_rating") is not None
+            )
+            default_rating_value = (
+                float(existing_entry["personal_rating"])
+                if default_set_rating
+                else 3.0
+            )
+
+            default_set_finished = bool(
+                existing_entry and existing_entry.get("finished_date")
+            )
+            default_finished_date = date.today()
+            if default_set_finished:
+                try:
+                    default_finished_date = date.fromisoformat(existing_entry["finished_date"])
+                except ValueError:
+                    default_finished_date = date.today()
+
+            default_notes = (existing_entry.get("notes") or "") if existing_entry else ""
+
+            widget_prefix = f"reading_entry_{selected_book_id}"
+            selected_status_label = st.selectbox(
+                t("reading_status"),
+                status_labels,
+                index=default_status_index,
+                key=f"{widget_prefix}_status",
+            )
+
+            c1, c2 = st.columns(2)
+            with c1:
+                set_my_rating = st.checkbox(
+                    t("set_my_rating"),
+                    value=default_set_rating,
+                    key=f"{widget_prefix}_set_my_rating",
+                )
+                my_rating_value = None
+                if set_my_rating:
+                    my_rating_value = st.number_input(
+                        t("my_rating"),
+                        min_value=0.0,
+                        max_value=5.0,
+                        value=default_rating_value,
+                        step=0.5,
+                        key=f"{widget_prefix}_my_rating",
+                    )
+            with c2:
+                set_finished_date = st.checkbox(
+                    t("set_finished_date"),
+                    value=default_set_finished,
+                    key=f"{widget_prefix}_set_finished_date",
+                )
+                finished_date_value = None
+                if set_finished_date:
+                    finished_date_value = st.date_input(
+                        t("finished_date"),
+                        value=default_finished_date,
+                        key=f"{widget_prefix}_finished_date",
+                    )
+
+            reading_notes = st.text_area(
+                t("reading_notes"),
+                value=default_notes,
+                height=100,
+                key=f"{widget_prefix}_notes",
+            )
+            save_reading_entry = st.button(
+                t("save_reading_entry"),
+                type="primary",
+                key=f"{widget_prefix}_save",
+            )
+
+            selected_status_code = status_codes[status_labels.index(selected_status_label)]
+            if selected_status_code == "completed" and not set_finished_date:
+                st.caption(t("completed_date_hint"))
+
+            if save_reading_entry:
+                with conn:
+                    conn.execute(
+                        """
+                        INSERT INTO reading_list (
+                            book_id, status, personal_rating, finished_date, notes, updated_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT(book_id) DO UPDATE SET
+                            status = excluded.status,
+                            personal_rating = excluded.personal_rating,
+                            finished_date = excluded.finished_date,
+                            notes = excluded.notes,
+                            updated_at = CURRENT_TIMESTAMP
+                        """,
+                        (
+                            selected_book_id,
+                            selected_status_code,
+                            float(my_rating_value) if set_my_rating else None,
+                            finished_date_value.isoformat() if set_finished_date and finished_date_value else None,
+                            reading_notes.strip() or None,
+                        ),
+                    )
+                st.success(t("reading_saved"))
+                st.rerun()
+
+        section_title(t("reading_table_section"))
+        reading_rows = run_query(
+            conn,
+            """
+            SELECT
+                rl.book_id,
+                b.title,
+                COALESCE(
+                    (
+                        SELECT GROUP_CONCAT(author_name, ', ')
+                        FROM (
+                            SELECT a.author_name AS author_name
+                            FROM book_authors ba
+                            JOIN authors a ON a.author_id = ba.author_id
+                            WHERE ba.book_id = b.book_id
+                            ORDER BY ba.author_order
+                        )
+                    ),
+                    ?
+                ) AS authors,
+                rl.status,
+                rl.personal_rating,
+                rl.finished_date,
+                rl.notes,
+                rl.updated_at
+            FROM reading_list rl
+            JOIN books b ON b.book_id = rl.book_id
+            ORDER BY
+                CASE rl.status
+                    WHEN 'reading' THEN 1
+                    WHEN 'want_to_read' THEN 2
+                    WHEN 'completed' THEN 3
+                    WHEN 'dropped' THEN 4
+                    ELSE 5
+                END,
+                rl.updated_at DESC
+            """,
+            (t("unknown_author"),),
+        )
+
+        if not reading_rows:
+            st.info(t("no_data"))
+        else:
+            status_rows = run_query(
+                conn,
+                "SELECT status, COUNT(*) AS count FROM reading_list GROUP BY status",
+            )
+            if status_rows:
+                parts = [
+                    f'{reading_status_label(r["status"], t)}: {r["count"]}'
+                    for r in status_rows
+                ]
+                st.caption(f'{t("status_breakdown")}: {" · ".join(parts)}')
+
+            display_rows = []
+            for row in reading_rows:
+                item = dict(row)
+                item["status"] = reading_status_label(item["status"], t)
+                display_rows.append(item)
+
+            row_count_badge(len(display_rows), t)
+            st.dataframe(
+                _rename_rows(display_rows, lang),
+                use_container_width=True,
+                hide_index=True,
+                height=420,
+            )
+
+            section_title(t("reading_export_section"))
+            st.caption(t("reading_export_ready", count=len(display_rows)))
+            st.caption(t("reading_export_hint"))
+            export_df = _rename_df(pd.DataFrame(display_rows), lang)
+            export_csv = export_df.to_csv(index=False).encode("utf-8-sig")
+            st.download_button(
+                t("reading_export"),
+                data=export_csv,
+                file_name=f"reading_list_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=False,
+            )
+
+            entry_options = {}
+            for row in reading_rows:
+                label = (
+                    f'{row["title"]} · {reading_status_label(row["status"], t)} · ID {row["book_id"]}'
+                )
+                entry_options[label] = row["book_id"]
+
+            selected_entry_label = st.selectbox(
+                t("select_reading_entry"),
+                list(entry_options.keys()),
+                key="reading_delete_select",
+            )
+            if st.button(t("delete_reading_entry"), key="reading_delete_btn"):
+                with conn:
+                    conn.execute(
+                        "DELETE FROM reading_list WHERE book_id = ?",
+                        (entry_options[selected_entry_label],),
+                    )
+                st.success(t("reading_deleted"))
+                st.rerun()
+
+    with tab_manage_books:
+        st.caption(t("book_admin_hint"))
+
+        section_title(t("book_add_section"))
+        default_year = min(max(date.today().year, 1800), 2030)
+        with st.form("add_book_form", clear_on_submit=True):
+            add_title = st.text_input(f'{t("book_title")} *')
+            add_authors = st.text_input(
+                f'{t("book_authors_input")} *',
+                placeholder=t("book_authors_placeholder"),
+            )
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                add_publish_year = st.number_input(
+                    f'{t("book_publish_year_input")} *',
+                    min_value=1800,
+                    max_value=2030,
+                    value=int(default_year),
+                    step=1,
+                )
+            with c2:
+                add_rating = st.number_input(
+                    f'{t("book_rating_input")} *',
+                    min_value=0.0,
+                    max_value=5.0,
+                    value=4.0,
+                    step=0.1,
+                )
+            with c3:
+                add_language = st.text_input(
+                    f'{t("book_language_input")} *',
+                    value="English",
+                )
+
+            c4, c5, c6 = st.columns(3)
+            with c4:
+                add_pages = st.text_input(t("book_pages_input"), value="")
+            with c5:
+                add_num_ratings = st.text_input(t("book_num_ratings_input"), value="")
+            with c6:
+                add_reviews = st.text_input(t("book_reviews_count_input"), value="")
+
+            add_publisher = st.text_input(t("book_publisher_input"), value="")
+            add_isbn = st.text_input(t("book_isbn_input"), value="")
+            add_isbn13 = st.text_input(t("book_isbn13_input"), value="")
+
+            add_book_submit = st.form_submit_button(t("add_book_btn"), type="primary")
+
+        if add_book_submit:
+            payload, errors = sanitize_book_payload(
+                title=add_title,
+                authors_text=add_authors,
+                publish_year=int(add_publish_year),
+                rating=float(add_rating),
+                language=add_language,
+                pages_text=add_pages,
+                num_ratings_text=add_num_ratings,
+                reviews_text=add_reviews,
+                publisher=add_publisher,
+                isbn=add_isbn,
+                isbn13_text=add_isbn13,
+                t=t,
+            )
+            if errors:
+                for msg in errors:
+                    st.error(msg)
+            else:
+                next_book_id = int(run_scalar(conn, "SELECT COALESCE(MAX(book_id), 0) + 1 FROM books"))
+                with conn:
+                    conn.execute(
+                        """
+                        INSERT INTO books (
+                            book_id, title, isbn, isbn13, language, pages, publisher_name,
+                            publish_year, num_ratings, rating, text_reviews_count
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            next_book_id,
+                            payload["title"],
+                            payload["isbn"],
+                            payload["isbn13"],
+                            payload["language"],
+                            payload["pages"],
+                            payload["publisher_name"],
+                            payload["publish_year"],
+                            payload["num_ratings"],
+                            payload["rating"],
+                            payload["text_reviews_count"],
+                        ),
+                    )
+
+                    for idx, author_name in enumerate(payload["authors"], start=1):
+                        author_id = ensure_author_id(conn, author_name)
+                        conn.execute(
+                            "INSERT INTO book_authors(book_id, author_id, author_order) VALUES (?, ?, ?)",
+                            (next_book_id, author_id, idx),
+                        )
+
+                st.success(t("book_added"))
+                st.rerun()
+
+        section_title(t("book_edit_section"))
+        edit_keyword = st.text_input(
+            t("book_search"),
+            value="",
+            placeholder=t("book_search_placeholder"),
+            key="edit_book_keyword",
+        ).strip()
+
+        edit_candidates = run_query(
+            conn,
+            """
+            SELECT
+                b.book_id,
+                b.title,
+                b.publish_year,
+                COALESCE(
+                    (
+                        SELECT GROUP_CONCAT(author_name, ', ')
+                        FROM (
+                            SELECT a.author_name AS author_name
+                            FROM book_authors ba
+                            JOIN authors a ON a.author_id = ba.author_id
+                            WHERE ba.book_id = b.book_id
+                            ORDER BY ba.author_order
+                        )
+                    ),
+                    ?
+                ) AS authors
+            FROM books b
+            WHERE b.title LIKE ?
+            ORDER BY b.title ASC
+            LIMIT 200
+            """,
+            (t("unknown_author"), f"%{edit_keyword}%"),
+        )
+
+        if not edit_candidates:
+            st.info(t("no_data"))
+        else:
+            edit_options = {}
+            for row in edit_candidates:
+                year_text = row["publish_year"] if row["publish_year"] is not None else "—"
+                label = f'{row["title"]} ({year_text}) · {row["authors"]} · ID {row["book_id"]}'
+                edit_options[label] = row["book_id"]
+
+            selected_edit_label = st.selectbox(
+                t("select_existing_book"),
+                list(edit_options.keys()),
+                key="selected_edit_book",
+            )
+            selected_edit_book_id = edit_options[selected_edit_label]
+
+            current_book_rows = run_query(
+                conn,
+                "SELECT * FROM books WHERE book_id = ?",
+                (selected_edit_book_id,),
+            )
+            if current_book_rows:
+                current_book = current_book_rows[0]
+                current_authors = get_author_line(conn, selected_edit_book_id)
+                current_year = (
+                    int(current_book["publish_year"])
+                    if current_book["publish_year"] is not None
+                    else int(default_year)
+                )
+                current_rating = (
+                    float(current_book["rating"])
+                    if current_book["rating"] is not None
+                    else 0.0
+                )
+
+                with st.form(f"edit_book_form_{selected_edit_book_id}", clear_on_submit=False):
+                    edit_title = st.text_input(
+                        f'{t("book_title")} *',
+                        value=current_book["title"],
+                    )
+                    edit_authors = st.text_input(
+                        f'{t("book_authors_input")} *',
+                        value=current_authors,
+                        placeholder=t("book_authors_placeholder"),
+                    )
+                    e1, e2, e3 = st.columns(3)
+                    with e1:
+                        edit_publish_year = st.number_input(
+                            f'{t("book_publish_year_input")} *',
+                            min_value=1800,
+                            max_value=2030,
+                            value=int(current_year),
+                            step=1,
+                        )
+                    with e2:
+                        edit_rating = st.number_input(
+                            f'{t("book_rating_input")} *',
+                            min_value=0.0,
+                            max_value=5.0,
+                            value=float(current_rating),
+                            step=0.1,
+                        )
+                    with e3:
+                        edit_language = st.text_input(
+                            f'{t("book_language_input")} *',
+                            value=current_book["language"] or "",
+                        )
+
+                    e4, e5, e6 = st.columns(3)
+                    with e4:
+                        edit_pages = st.text_input(
+                            t("book_pages_input"),
+                            value=str(current_book["pages"]) if current_book["pages"] is not None else "",
+                        )
+                    with e5:
+                        edit_num_ratings = st.text_input(
+                            t("book_num_ratings_input"),
+                            value=str(current_book["num_ratings"]) if current_book["num_ratings"] is not None else "",
+                        )
+                    with e6:
+                        edit_reviews = st.text_input(
+                            t("book_reviews_count_input"),
+                            value=str(current_book["text_reviews_count"]) if current_book["text_reviews_count"] is not None else "",
+                        )
+
+                    edit_publisher = st.text_input(
+                        t("book_publisher_input"),
+                        value=current_book["publisher_name"] or "",
+                    )
+                    edit_isbn = st.text_input(
+                        t("book_isbn_input"),
+                        value=current_book["isbn"] or "",
+                    )
+                    edit_isbn13 = st.text_input(
+                        t("book_isbn13_input"),
+                        value=str(current_book["isbn13"]) if current_book["isbn13"] is not None else "",
+                    )
+
+                    update_book_submit = st.form_submit_button(
+                        t("update_book_btn"),
+                        type="primary",
+                    )
+
+                if update_book_submit:
+                    payload, errors = sanitize_book_payload(
+                        title=edit_title,
+                        authors_text=edit_authors,
+                        publish_year=int(edit_publish_year),
+                        rating=float(edit_rating),
+                        language=edit_language,
+                        pages_text=edit_pages,
+                        num_ratings_text=edit_num_ratings,
+                        reviews_text=edit_reviews,
+                        publisher=edit_publisher,
+                        isbn=edit_isbn,
+                        isbn13_text=edit_isbn13,
+                        t=t,
+                    )
+                    if errors:
+                        for msg in errors:
+                            st.error(msg)
+                    else:
+                        with conn:
+                            conn.execute(
+                                """
+                                UPDATE books
+                                SET
+                                    title = ?,
+                                    isbn = ?,
+                                    isbn13 = ?,
+                                    language = ?,
+                                    pages = ?,
+                                    publisher_name = ?,
+                                    publish_year = ?,
+                                    num_ratings = ?,
+                                    rating = ?,
+                                    text_reviews_count = ?
+                                WHERE book_id = ?
+                                """,
+                                (
+                                    payload["title"],
+                                    payload["isbn"],
+                                    payload["isbn13"],
+                                    payload["language"],
+                                    payload["pages"],
+                                    payload["publisher_name"],
+                                    payload["publish_year"],
+                                    payload["num_ratings"],
+                                    payload["rating"],
+                                    payload["text_reviews_count"],
+                                    selected_edit_book_id,
+                                ),
+                            )
+                            conn.execute(
+                                "DELETE FROM book_authors WHERE book_id = ?",
+                                (selected_edit_book_id,),
+                            )
+                            for idx, author_name in enumerate(payload["authors"], start=1):
+                                author_id = ensure_author_id(conn, author_name)
+                                conn.execute(
+                                    "INSERT INTO book_authors(book_id, author_id, author_order) VALUES (?, ?, ?)",
+                                    (selected_edit_book_id, author_id, idx),
+                                )
+
+                        st.success(t("book_updated"))
+                        st.rerun()
+
+                confirm_delete_book = st.checkbox(
+                    t("confirm_delete_book"),
+                    key=f"confirm_delete_book_{selected_edit_book_id}",
+                )
+                if st.button(
+                    t("delete_book_btn"),
+                    key=f"delete_book_btn_{selected_edit_book_id}",
+                    type="secondary",
+                ):
+                    if not confirm_delete_book:
+                        st.warning(t("confirm_delete_required"))
+                    else:
+                        with conn:
+                            conn.execute(
+                                "DELETE FROM books WHERE book_id = ?",
+                                (selected_edit_book_id,),
+                            )
+                        st.success(t("book_deleted"))
+                        st.rerun()
 
 
 def page_analytics(conn: sqlite3.Connection, t, lang: str) -> None:
@@ -1532,7 +3001,11 @@ def main() -> None:
     nav_left, nav_right = st.columns([8, 1])
     with nav_left:
         t_temp = get_text_fn(st.session_state.lang)
-        pages = [("search", "page_search"), ("analytics", "page_analytics")]
+        pages = [
+            ("search", "page_search"),
+            ("analytics", "page_analytics"),
+            ("reading_list", "page_reading_list"),
+        ]
         cols = st.columns(len(pages) + 1)
         with cols[0]:
             st.markdown(
@@ -1577,12 +3050,15 @@ def main() -> None:
         return
 
     conn = get_conn(str(DB_PATH))
+    ensure_app_schema(conn)
 
     # --- Page dispatch ---
     if page == "search":
         page_search(conn, t, lang)
-    else:
+    elif page == "analytics":
         page_analytics(conn, t, lang)
+    else:
+        page_reading_list(conn, t, lang)
 
     # --- Footer ---
     st.markdown(
