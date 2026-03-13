@@ -12,6 +12,7 @@ English | [简体中文](README.zh-CN.md)
   <img src="assets/images/image-6.png" alt="Books Database Explorer UI" width="900" />
 </p>
 Beyond local data, it integrates the Google Books API to enrich book information, making it easy to preview books and access related links. The interface is clean and modern, very easy to start with, and suitable for both quick browsing and deeper analysis.
+
 ## Quick Start
 
 ### Install
